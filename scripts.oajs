@@ -3,4 +3,8 @@ function Hiding() {
        	Orion.UseSkill('Hiding');
         	Orion.Wait(3400);
     	}
+    	while (Orion.SkillValue('Spirit Speak') < 1000){
+       	Orion.UseSkill('Spirit Speak');
+        	Orion.Wait(3400);    		
+    	}
 }
