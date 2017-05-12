@@ -1,0 +1,6 @@
+function Hiding() {
+    	while (Orion.SkillValue('hiding') < 1000){
+       	Orion.UseSkill('Hiding');
+        	Orion.Wait(3400);
+    	}
+}
