@@ -8,3 +8,10 @@ function Hiding() {
         	Orion.Wait(3400);    		
     	}
 }
+function Wrestling() {
+	while (Orion.SkillValue('Wrestling') < 1000){
+       	void Orion.UseObject(['0x403BD4FC']);
+       	void Orion.UseObject(['0x403BD53E']);
+        	Orion.Wait(2600);	
+    	}
+}

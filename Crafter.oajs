@@ -1,0 +1,73 @@
+// Pickaxe Types. You can gather these types by using the list/types tab in Orion Assistant
+// Pipe Seperate each type.
+// Needs to be accessible to each function.
+var toolTypes = '0x0E86';
+var tileTypes = '0x053C|0x053D|0x053E';
+
+function main(){
+	Orion.ClearJournal();
+	while (!Player.Dead()){
+		Mining();
+            findPickaxes();
+        Orion.Wait(1000);
+    }
+}
+
+function Mining() {
+var text = 'in your pack|That is too far away|no line of sight';
+	while ( !Player.Dead() ){
+		//calculateMiningLocation();
+		Orion.Print(tileTypes);
+		Orion.WaitTargetTile( 'lasttile', [Player.X(), Player.Y(), Player.Z()]);
+		//Orion.TargetTile('type', [Player.X(), Player.Y(), Player.Z()]);
+		//Orion.WaitTargetObject('type');
+		if (findPickaxes()){
+			var msg = Orion.WaitJournal(text, Orion.Now(), Orion.Now() + 10000, 'sys|my');
+			if (msg != null && msg.FindTextID() > 1)
+				break;
+		} else
+			break;
+
+		Orion.Wait(100);
+	}
+	Orion.ClearJournal();
+}
+
+function calculateMiningLocation() {
+	var noMetal = 'There is no metal here to mine';
+	Orion.Print('your position is ' + Player.X() + ', ' + Player.Y() + ', ' + Player.Z());
+	var postest = [8];
+	postest[0] = ( ' ' + (Player.X()) + ', ' + (Player.Y()) + ', ' + (Player.Z()) );
+	postest[1] = (' ' + (Player.X() - 1) + ', ' + (Player.Y() - 1) + ', ' + (Player.Z()));
+	postest[2] = (' ' + (Player.X()) + ', ' + (Player.Y() - 1) + ', ' + (Player.Z()));
+	postest[3] = (' ' + (Player.X() + 1) + ', ' + (Player.Y() - 1) + ', ' + (Player.Z()));
+	postest[4] = (' ' + (Player.X() - 1) + ', ' + (Player.Y()) + ', ' + (Player.Z()));
+	postest[5] = (' ' + (Player.X() + 1) + ', ' + (Player.Y()) + ', ' + (Player.Z()));
+	postest[6] = (' ' + (Player.X() - 1) + ', ' + (Player.Y() + 1) + ', ' + (Player.Z()));
+	postest[7] = (' ' + (Player.X()) + ', ' + (Player.Y() + 1) + ', ' + (Player.Z()));
+	postest[8] = (' ' + (Player.X() + 1) + ', ' + (Player.Y() + 1) + ', ' + (Player.Z()));
+	for (var i = 0; i < 9; i++) {
+		var journalCheck = Orion.WaitJournal(noMetal, Orion.Now(), Orion.Now() + 10000, 'sys|my');
+		if (journalCheck != null && journalCheck.FindTextID() > 1){
+			Orion.WaitTargetTileRelative ( '0', Player.X(), Player.Y(), Player.Z());
+			Orion.Print('Mining at ' + i + ' ' + postest[i] );
+		} else {
+			break;
+		}
+					Orion.WaitTargetTileRelative ( '0', Player.X(), Player.Y(), Player.Z());
+			Orion.Print('Mining at ' + i + ' ' + postest[i] );
+		Orion.ClearJournal();
+	}
+}
+
+function findPickaxes() {
+	var list = Orion.FindType(toolTypes, '-1', self);
+	if (list.length)
+        Orion.UseObject(list[0]);
+    	else{
+        Orion.Print(0, list.length);
+        Orion.Wait(1000);
+    	}
+
+    return list.length;
+}
