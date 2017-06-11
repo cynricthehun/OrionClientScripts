@@ -1,0 +1,346 @@
+// script Ride Animal Taming using lorov and some other skills in their spare time, timing.
+// variables used:
+// FindList: animals - a list of types of living creatures
+// TypeList: knife - blade type for cutting sheep's wool and for Arms Lore, Item ID, etc.
+// TypeList: crook - type timing sticks
+
+// Value secondary skill at which to switch to the next pumping of skill
+// When reaching all the skills of this value is increased by g_SkillStep
+var g_MaxSkillValue = 300;
+// Step for g_MaxSkillValue
+var g_SkillStep = 100;
+// creating a counter to track the number of steps the character takes.
+var walkCounter = 0;
+// creating a car to store the players previous location.
+var previousLocation;
+// creating a var for the players currentLocation.
+var currentLocation;
+// Defaulting walk direction to north.
+var direction = 0;
+// create a var to store the serial for recall spell. This should be a rune or runebook.
+var recallTarget;
+// Keep track of how many followers the player has.
+var followers = Player.Followers();
+
+// main function
+function main ()
+{
+    // Start protection script (just in case)
+    Orion.Exec ( 'ProtectionGuards');
+    
+    // Set your recall target.
+    // recallTarget = Orion.GetSerial();
+
+    // timer at which reset is done with all ignore an item
+    var ignoreTimer = 0;
+
+    // As long as the timing is not alive and 100.0
+    while (!Player.Dead() && Orion.SkillValue ( 'Animal Taming' ) < 1000)
+    {
+        // Reset ignore
+        if (ignoreTimer < Orion.Now())
+        {
+            Orion.IgnoreReset ();
+            ignoreTimer = Orion.Now() + 60000;
+        }
+
+        // Call function timing
+        AnimalTaming();
+
+        // If there is to swing from a minor - download your spare time
+        //if (g_MaxSkillValue <= 1000)
+        //    ItemID();
+
+        // The cycle must beat a delay of at least 100, if during the operation something goes wrong - all hang without this
+        Orion.Wait (100);
+    }
+}
+function Walk()
+{
+	// Create a new player object.
+	var player = Player;
+	
+	// Have the player looking for animals while not taming animals.
+	while (player.currentLocation == player.previousLocation)
+	{
+		// Call function timing
+        	AnimalTaming();
+        	
+		direction = walkDirection(player);
+
+		currentLocation = player.X() + "," + player.Y() + "," + player.Z();
+	
+		// What is the current walk counter set at?
+		Orion.Print(0x002F, "Walk Counter is " + walkCounter);
+	
+		// Set previous player location
+		if (walkCounter % 2 == 0)
+		{
+			previousLocation = currentLocation;
+			Orion.Print(0x002F, "Characters Previous Location is now " + previousLocation);
+			Orion.Print(0x002F, "Walk Counter is " + walkCounter);
+		}
+		// What is the players current location?
+		Orion.CharPrint(0x000CF0B0, 0x002F, "Characters Current Location is " + currentLocation);
+		
+		// Tell the user which direction the character will walk.
+		Orion.CharPrint(0x000CF0B0, 0x002F, "You will walk " + direction);
+		
+		// refresh the screen in case of client desync from server.
+		Orion.Resend();
+	
+		// Tell the player to take a step in the unblocked direction.
+		Orion.Step( direction, 0 );
+		walkCounter += 1;
+	}
+}
+function walkDirection(player)
+{
+	// Can I walk in cardinal directions
+	var direction = 0;
+	// West
+	var CanWalkWest = Orion.CanWalk(6, player.X(), player.Y(), 0);
+	//South
+	var CanWalkSouth = Orion.CanWalk(4, player.X(), player.Y(), 0);
+	//East
+	var CanWalkEast = Orion.CanWalk(2, player.X(), player.Y(), 0);
+	//North
+	var CanWalkNorth = Orion.CanWalk(0, player.X(), player.Y(), 0);
+	
+	// Set the open direction for teh player to walk.
+	if (CanWalkWest == true) { direction = 6; }
+	else if (CanWalkSouth == true) { direction = 4; }
+	else if (CanWalkEast == true) { direction = 2; }
+	else if (CanWalkNorth == true) { direction = 0; }
+	else { direction = 0; }
+	
+	// return the direction to the call.
+	return direction;
+}
+// timing function
+// Look for animals on land (within 2 tiles), scored in the list (FindList) animals, if found - trying zataymit if animals moved - suitable to it using Firmware in hodilki client
+function AnimalTaming ()
+{
+    // Search text in the magazine
+    var text = 'fail to | too far | hungry creat | see the target | as master | tame creatures from hiding';
+	
+    // Applies only to the living characters
+    while (!Player.Dead())
+    {
+        // Find the nearest living creatures on the list on the ground within 2 tiles
+        var list = Orion.FindList ( 'Animals', ground, 'near | mobile', 2);
+	  Orion.Print(0x002F, "The List " + list);
+        // Exit the function, if nothing found
+        if (!list.length)
+            return;
+
+        // Remember the serial number for easy access, so as not to contact each time the sheet
+        var serial = list [0];
+
+        // Search for an object with the specified seriynikom assists in memory
+        var obj = Orion.FindObject (serial);
+        Orion.UseSkill ( 'Animal Taming');
+
+        // If the object is not found - ignore and move on to the next iteration
+        if (obj == null)
+        {
+            Orion.Ignore (serial);
+            continue;
+        }
+
+        // If the object is found and it is sheep - swifts, knife - type knife, must be scored in the type list
+        if (obj.Graphic () == 0x00CF)
+        {
+            Orion.WaitTargetObject (serial);
+            Orion.UseType ( 'knife');
+            Orion.Wait (200);
+        }
+
+        // Until zataymili or killed - Time
+        while (!Player.Dead () && obj.Exists ())
+        {
+            // Match the object, if you are too far
+            while (obj.Exists () && Orion.GetDistance (serial)> 2)
+                Orion.WalkTo (obj.X (), obj.Y (), obj.Z (), 2);
+
+            // inning, crook - type sticks, should be put in the list of types
+            Orion.WaitTargetObject (serial);
+            Orion.UseType ( 'crook');
+
+            // Waiting lines in the log (and the system of the character), the maximum waiting time - 30 seconds
+            var msg = Orion.WaitJournal (text, Orion.Now (), Orion.Now () + 30000, 'sys | my');
+
+            // If something was found and it's not a message: fail to
+            if (msg != null && msg.FindTextID ())
+            {
+                // If this message: too far | see the target - approaching the object
+                if ((msg.FindTextID () == 1 || msg.FindTextID () == 3) && obj.Exists ())
+                    Orion.WalkTo (obj.X (), obj.Y (), obj.Z (), 1);
+                else if (msg.FindTextID () == 5) // Exit inviz meditation skid (immediately outputs of inviz at full mana)
+                    Orion.UseSkill ( 'Meditation');
+                else // Animal hungry or zataymili successfully
+                {
+                    // Ignore if it's hungry animal (hungry creat)
+                    if (msg.FindTextID () == 2)
+                        Orion.Ignore (serial);
+
+                    break;
+                }
+            }
+
+            // Observe the delay in cycles
+            Orion.Wait (100);
+        }
+    }
+}
+
+// The secondary skill, is used in free time
+function ItemID ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Item Identification') <g_MaxSkillValue)
+    {
+        Orion.WaitTargetType ( 'knife');
+        Orion.UseSkill ( 'Item Identification');
+        Orion.Wait (1500);
+    }
+    else // Switching to another skill
+        AnimalLore ();
+}
+
+// The secondary skill, is used in free time
+function AnimalLore ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Animal Lore') <g_MaxSkillValue)
+    {
+        Orion.UseSkill ( 'Animal Lore', self);
+        Orion.WaitJournal ( 'think of anything | own master', Orion.Now (), Orion.Now () + 4000, 'my');
+    }
+    else // Switching to another skill
+        ArmsLore ();
+}
+
+// The secondary skill, is used in free time
+function ArmsLore ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Arms Lore') <g_MaxSkillValue)
+    {
+        Orion.WaitTargetType ( 'knife');
+        Orion.UseSkill ( 'Arms Lore');
+        Orion.WaitJournal ( 'are uncertain about | This item', Orion.Now (), Orion.Now () + 4000, 'sys');
+    }
+    else // Switching to another skill
+        TasteID ();
+}
+
+// The secondary skill, is used in free time
+function TasteID ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Taste Identification') <g_MaxSkillValue)
+    {
+        Orion.WaitTargetType ( 'knife');
+        Orion.UseSkill ( 'Taste Identification');
+        Orion.Wait (1500);
+    }
+    else // Switching to another skill
+        EvaluatingIntelligence ();
+}
+
+// The secondary skill, is used in free time
+function EvaluatingIntelligence ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue('Evaluating Intelligence') < g_MaxSkillValue)
+    {
+        Orion.UseSkill('Evaluating Intelligence', self);
+        Orion.WaitJournal('can not seem to judge', Orion.Now(), (Orion.Now() + 1500), 'sys');
+    }
+    else // Switching to another skill
+        SpiritSpeak();
+}
+
+// The secondary skill, is used in free time
+function SpiritSpeak()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Spirit Speak') <g_MaxSkillValue)
+    {
+        Orion.UseSkill ( 'Spirit Speak');
+        Orion.WaitJournal ( 'fail your attempt | establish a connection', Orion.Now (), Orion.Now () + 7000, 'sys');
+    }
+    else // Switching to another skill
+        Hiding ();
+}
+
+// The secondary skill, is used in free time
+function Hiding ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Hiding') <g_MaxSkillValue)
+    {
+        Orion.UseSkill ( 'Hiding');
+        Orion.WaitJournal ( 'seem to hide | have hidden', Orion.Now (), Orion.Now () + 7000, 'my | sys');
+    }
+    else // Switching to another skill
+        Stealth ();
+}
+
+// The secondary skill, is used in free time
+function Stealth ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Stealth') <g_MaxSkillValue)
+    {
+        Orion.UseSkill ( 'Stealth');
+        Orion.WaitJournal ( 'seem to hide | have hidden', Orion.Now (), Orion.Now () + 7000, 'my | sys');
+    }
+    else // Switching to another skill
+        Anatomy ();
+}
+
+// The secondary skill, is used in free time
+function Anatomy ()
+{
+    // If the value is less than the maximum skill - use
+    if (Orion.SkillValue ( 'Anatomy') <g_MaxSkillValue)
+    {
+        Orion.UseSkill ( 'Anatomy', self);
+        Orion.WaitJournal ( 'think of anything | has', Orion.Now (), Orion.Now () + 7000, 'my');
+    }
+    else if (g_MaxSkillValue <1000) // In the latter skill increases the maximum value
+        g_MaxSkillValue += g_SkillStep;
+}
+// Protection function
+// Checks red characters (and gildvarov, though they do not act Guards, but you can do something else) in the range of 15 tiles (suspended - screen) if found - Guard operates in parallel with the main function
+function ProtectionGuards ()
+{
+    // no need to check the Dead / yell
+    while (!Player.Dead ())
+    {
+        // Quick search of all living beings on the earth with wickedness gildvar / PC
+        var list = Orion.FindType ( '- 1', '-1', ground, 'fast | mobile', '15', 'red | enemy');
+
+        // If something is found - Guard and wait 2 seconds
+        if (list.length)
+        {
+            Orion.Say ( 'guards');
+            recall();
+            Orion.Wait (2000);
+        }
+
+        // delay between iterations - 2 seconds
+        Orion.Wait (2000);
+    }
+}
+function recall()
+{
+	//Check to ensure the player isn't dead and has the magery to cast the recall spell.
+	if (!Player.Dead() && Orion.SkillValue( 'Magery' ) > 490 && Player.Mana() > 14)
+	{
+		// cast the recall spell and target your rune.
+		Orion.Cast('Recall', ['targetSerial']);
+	}
+}
